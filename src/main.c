@@ -14,14 +14,8 @@ int main()
     for(int i=0; i<size; i++){
         data[i] = (float)i / 5;
     };
-    cl_platform_id platform;
-    CL_err = clGetPlatformIDs(1, &platform, NULL);
-    if (CL_err != CL_SUCCESS) {
-        printf("Failed to get platform ID: %d\n", CL_err);
-        return 1;
-    }
     printFloatList(data, size);
-    cl = createForwordProp_cl(size, &CL_err, &err);
+    cl = createForwordProp_cl(size, 100, &CL_err, &err);
     if(cl == NULL){
         print_createForwordProp_cl_error(CL_err, err);
         return 1;

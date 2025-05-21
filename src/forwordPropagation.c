@@ -4,11 +4,12 @@
 #include "forwordPropagation.h"
 #include "forwordPropagation_kernal.h"
 
-forwordProp_cl* createForwordProp_cl(int size, cl_int* CL_err_ppr, int* err){
+forwordProp_cl* createForwordProp_cl(int n_layers, int neuronsPerLayer, cl_int* CL_err_ppr, int* err){
     cl_command_queue_properties props[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
     cl_int CL_err = CL_SUCCESS;
     const char* kernel_src = (const char*)forwordProp_kernal_cl;
     const size_t kernel_len = forwordProp_kernal_cl_len;
+    int Vsize,Ssize,Wsize;
     //create the struct
     forwordProp_cl *cl = (forwordProp_cl*)malloc(sizeof(forwordProp_cl));
     if(cl == NULL){
@@ -20,7 +21,8 @@ forwordProp_cl* createForwordProp_cl(int size, cl_int* CL_err_ppr, int* err){
     cl->queue = NULL;
     cl->program = NULL;
     cl->kernel = NULL;
-    cl->buffer = NULL;
+    cl->n_layers = n_layers;
+    cl->neuronsPerLayer = neuronsPerLayer;
     //get a single GPU
     CL_err = clGetDeviceIDs(NULL, CL_DEVICE_TYPE_GPU, 1, &cl->device, NULL);
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 2, err, cl))
@@ -45,14 +47,40 @@ forwordProp_cl* createForwordProp_cl(int size, cl_int* CL_err_ppr, int* err){
     cl->kernel = clCreateKernel(cl->program, "calcSquare", &CL_err);
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 7, err, cl))
         return NULL;
-    //create global buffer (memory on the GPU)
-    cl->buffer = clCreateBuffer(cl->context, CL_MEM_READ_WRITE, sizeof(float)*size, NULL, &CL_err);
+    //  CREATE BUFFERS
+    //create neuron voltage buffer
+    Vsize = cl->n_layers*cl->neuronsPerLayer;
+    cl->V = clCreateBuffer(cl->context, CL_MEM_READ_WRITE, sizeof(cl_float)*Vsize, NULL, &CL_err);
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 8, err, cl))
         return NULL;
-    //set the buffer as the input of the kernal
-    CL_err = clSetKernelArg(cl->kernel, 0, sizeof(cl_mem), &cl->buffer);
+    //create spike input buffer
+    Ssize = cl->neuronsPerLayer*16;
+    cl->Sin = clCreateBuffer(cl->context, CL_MEM_READ_WRITE, sizeof(cl_bool)*Ssize, NULL, &CL_err);
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 9, err, cl))
         return NULL;
+    //create spike output buffer
+    cl->Sout = clCreateBuffer(cl->context, CL_MEM_READ_WRITE, sizeof(cl_bool)*Ssize, NULL, &CL_err);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 9, err, cl))
+        return NULL;
+    //create weight buffer
+    Wsize = (cl->n_layers-1)*cl->neuronsPerLayer*cl->neuronsPerLayer;
+    cl->W = clCreateBuffer(cl->context, CL_MEM_READ_WRITE, sizeof(cl_float)*Wsize, NULL, &CL_err);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 10, err, cl))
+        return NULL;
+    // SET KERNAL VARIABLES
+    CL_err = clSetKernelArg(cl->kernel, 0, sizeof(cl_mem), &cl->V);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 11, err, cl))
+        return NULL;
+    CL_err = clSetKernelArg(cl->kernel, 1, sizeof(cl_mem), &cl->Sin);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 12, err, cl))
+        return NULL;
+    CL_err = clSetKernelArg(cl->kernel, 2, sizeof(cl_mem), &cl->Sout);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 13, err, cl))
+        return NULL;
+    CL_err = clSetKernelArg(cl->kernel, 3, sizeof(cl_mem), &cl->W);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 14, err, cl))
+        return NULL;
+    // SET INITIAL VALUES
     //ensure that nothing is stuck int the queue
     clFinish(cl->queue);
     *err = 0;
@@ -75,8 +103,14 @@ int err_createForwordProp_cl(cl_int CL_err, cl_int* CL_err_ppr, int err_type, in
         clReleaseProgram(cl->program);
     if(cl->kernel != NULL)
         clReleaseKernel(cl->kernel);
-    if(cl->buffer != NULL)
-        clReleaseMemObject(cl->buffer);
+    if(cl->V != NULL)
+        clReleaseMemObject(cl->V);
+    if(cl->Sin != NULL)
+        clReleaseMemObject(cl->Sin);
+    if(cl->Sout != NULL)
+        clReleaseMemObject(cl->Sout);
+    if(cl->W != NULL)
+        clReleaseMemObject(cl->W);
     free(cl);
     return 1;
 }
@@ -84,27 +118,9 @@ int err_createForwordProp_cl(cl_int CL_err, cl_int* CL_err_ppr, int err_type, in
 void print_createForwordProp_cl_error(cl_int CL_err, int err){
     if(err == 0)
         return;
-    if(err != 9)
+    if(err != 1)
         printf("opencl error: %d\n", CL_err);
     printf("error on create forwordProp: %d\n", err);
-}
-
-int runForwordProp_cl(forwordProp_cl* cl, float* array, int size, cl_int* CL_err){
-    const size_t dim[] = {size,0,0};
-    //write
-    *CL_err = clEnqueueWriteBuffer(cl->queue, cl->buffer, CL_FALSE, 0, sizeof(cl_float)*size, array, 0, NULL, NULL);
-    if(*CL_err != CL_SUCCESS)
-        return 1;
-    //execute
-    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->kernel, 1, NULL, dim, NULL, 0, NULL, NULL);
-    if(*CL_err != CL_SUCCESS)
-        return 2;
-    //read
-    *CL_err = clEnqueueReadBuffer(cl->queue, cl->buffer, CL_FALSE, 0, sizeof(cl_float)*size, array, 0, NULL, NULL);
-    if(*CL_err != CL_SUCCESS)
-        return 3;
-    clFinish(cl->queue);
-    return 0;
 }
 
 void releaseForwordProp_cl(forwordProp_cl* cl){
@@ -113,6 +129,27 @@ void releaseForwordProp_cl(forwordProp_cl* cl){
     clReleaseCommandQueue(cl->queue);
     clReleaseProgram(cl->program);
     clReleaseKernel(cl->kernel);
-    clReleaseMemObject(cl->buffer);
+    clReleaseMemObject(cl->V);
+    clReleaseMemObject(cl->Sin);
+    clReleaseMemObject(cl->Sout);
+    clReleaseMemObject(cl->W);
     free(cl);
+}
+
+int runForwordProp_cl(forwordProp_cl* cl, float* array, int size, cl_int* CL_err){
+    const size_t dim[] = {size,0,0};
+    //write
+    *CL_err = clEnqueueWriteBuffer(cl->queue, cl->V, CL_FALSE, 0, sizeof(cl_float)*size, array, 0, NULL, NULL);
+    if(*CL_err != CL_SUCCESS)
+        return 1;
+    //execute
+    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->kernel, 1, NULL, dim, NULL, 0, NULL, NULL);
+    if(*CL_err != CL_SUCCESS)
+        return 2;
+    //read
+    *CL_err = clEnqueueReadBuffer(cl->queue, cl->V, CL_FALSE, 0, sizeof(cl_float)*size, array, 0, NULL, NULL);
+    if(*CL_err != CL_SUCCESS)
+        return 3;
+    clFinish(cl->queue);
+    return 0;
 }

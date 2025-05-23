@@ -1,38 +1,67 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "forwordPropagation.h"
 
-void printFloatList(float*,int);
+void printFloatList(float*,int,int);
+void printClUchar(cl_uchar*,int,int);
 
 int main()
 {
     cl_int CL_err = CL_SUCCESS;
     int err = 0;
     forwordProp_cl* cl;
-    int size = 500;
-    float data[size];
-    //create array
-    for(int i=0; i<size; i++){
-        data[i] = (float)i / 5;
+    int nl = 1;
+    int npl = 3;
+    cl_float weight[] = {
+        0.0, 1.0, 2.0,
+        0.1, 1.1, 2.1,
+        0.2, 1.2, 2.2
     };
-    printFloatList(data, size);
-    cl = createForwordProp_cl(size, 100, &CL_err, &err);
+    printFloatList(weight, npl, npl);
+    cl_uchar S[] = {
+        1, 0,
+        0, 1,
+        0, 1
+    };
+    printClUchar(S, npl, LEN);
+    //cl_float mult[npl][LEN];
+    cl_float mult[] = {
+        10.0, 11.0,
+        20.0, 21.0,
+        30.0, 31.0
+    };
+    printFloatList(mult, npl, LEN);
+    cl = createForwordProp_cl(nl, npl, weight, &CL_err, &err);
     if(cl == NULL){
         print_createForwordProp_cl_error(CL_err, err);
         return 1;
     }
-    err = runForwordProp_cl(cl, data, size, &CL_err);
+    err = runForwordProp_cl(cl, S, mult, &CL_err);
     if(err != 0){
         printf("opencl error: %d\nerror on run forwordProp: %d\n", CL_err, err);
         return 1;
     }
-    printFloatList(data, size);
+    printFloatList(mult, npl, LEN);
     releaseForwordProp_cl(cl);
     return 0;
 }
 
-void printFloatList(float* data, int size){
+void printFloatList(float* data, int size, int len){
     for(int i=0; i<size; i++){
-        printf("%f ", data[i]);
+        for(int j=0; j<len; j++){
+            printf("%f ", data[i*len + j]);
+        }
+        printf("\n");
     }
-    printf("\n\n");
+    printf("\n");
+}
+
+void printClUchar(cl_uchar* data, int size, int len){
+    for(int i=0; i<size; i++){
+        for(int j=0; j<len; j++){
+            printf("%d ", data[i*len + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }

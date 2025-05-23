@@ -3,20 +3,26 @@
 
 #include <CL/cl.h>
 
+#define LEN 2
+///16
+
 typedef struct forwordProp_cl{
+    int n_layers, neuronsPerLayer, len, iteration;
     cl_device_id device;
     cl_context context;
     cl_command_queue queue;
     cl_program program;
-    cl_kernel kernel;
-    int n_layers, neuronsPerLayer;
-    cl_mem V, Sin, Sout, W;
+    cl_kernel ffp, dotProd;
+    cl_mem V, S, W, mult;
 } forwordProp_cl;
 
-forwordProp_cl* createForwordProp_cl(int,int,cl_int*,int*);
+forwordProp_cl* createForwordProp_cl(int,int,cl_float*,cl_int*,int*);
+int createForwordProp_cl_createBase(forwordProp_cl*,cl_int*,int*);
+int createForwordProp_cl_createBuffers(forwordProp_cl*,cl_float*,cl_int*,int*);
+int createForwordProp_cl_createKeranals(forwordProp_cl*,cl_int*,int*);
 int err_createForwordProp_cl(cl_int,cl_int*,int,int*,forwordProp_cl*);
 void print_createForwordProp_cl_error(cl_int,int);
 void releaseForwordProp_cl(forwordProp_cl*);
-int runForwordProp_cl(forwordProp_cl*,float*,int,cl_int*);
+int runForwordProp_cl(forwordProp_cl*,cl_uchar*,cl_float*,cl_int*);
 
 #endif

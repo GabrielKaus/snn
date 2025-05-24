@@ -23,6 +23,6 @@ int createForwordProp_cl_createKeranals(forwordProp_cl*,cl_int*,int*);
 int err_createForwordProp_cl(cl_int,cl_int*,int,int*,forwordProp_cl*);
 void print_createForwordProp_cl_error(cl_int,int);
 void releaseForwordProp_cl(forwordProp_cl*);
-int runForwordProp_cl(forwordProp_cl*,cl_uchar*,cl_float*,cl_int*);
+int runForwordProp_cl(forwordProp_cl*,cl_uchar*,cl_int*);
 
 #endif

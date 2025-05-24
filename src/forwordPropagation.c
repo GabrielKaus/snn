@@ -157,7 +157,7 @@ void releaseForwordProp_cl(forwordProp_cl* cl){
     free(cl);
 }
 
-int runForwordProp_cl(forwordProp_cl* cl, cl_uchar* array, cl_float* out, cl_int* CL_err){
+int runForwordProp_cl(forwordProp_cl* cl, cl_uchar* array, cl_int* CL_err){
     const size_t dim_dotProd[] = {cl->neuronsPerLayer,cl->len,1};
     const size_t dim_ffp[] = {cl->neuronsPerLayer,1,1};
     int Wsize = cl->n_layers*cl->neuronsPerLayer*cl->neuronsPerLayer;
@@ -167,16 +167,15 @@ int runForwordProp_cl(forwordProp_cl* cl, cl_uchar* array, cl_float* out, cl_int
     if(*CL_err != CL_SUCCESS)
         return 1;
     //execute
-    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->dotProd, 2, NULL, dim_dotProd, NULL, 0, NULL, NULL);
-    if(*CL_err != CL_SUCCESS)
-        return 2;
-    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->ffp, 1, NULL, dim_ffp, NULL, 0, NULL, NULL);
-    if(*CL_err != CL_SUCCESS)
-        return 2;
+    for(cl->iteration=0; cl->iteration<cl->n_layers; cl->iteration++){
+        *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->dotProd, 2, NULL, dim_dotProd, NULL, 0, NULL, NULL);
+        if(*CL_err != CL_SUCCESS)
+            return 2;
+        *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->ffp, 1, NULL, dim_ffp, NULL, 0, NULL, NULL);
+        if(*CL_err != CL_SUCCESS)
+            return 2;
+    }
     //read
-    *CL_err = clEnqueueReadBuffer(cl->queue, cl->mult, CL_FALSE, 0, sizeof(cl_float)*Ssize, out, 0, NULL, NULL);
-    if(*CL_err != CL_SUCCESS)
-        return 3;
     *CL_err = clEnqueueReadBuffer(cl->queue, cl->S, CL_FALSE, 0, sizeof(cl_uchar)*Ssize, array, 0, NULL, NULL);
     if(*CL_err != CL_SUCCESS)
         return 3;

@@ -1,14 +1,15 @@
-kernel void ffp(global float *V, global bool *S, global float *mult){
-    int id1 = get_global_id(0);
-    int id2 = get_global_id(1);
-    float dot_product = 0;
-    for(int i=0; i<16; i++){
-        if(S[i] == 1)
-            dot_product += mult[id1*16+i];
-    }
-    V[id1] = V[id1]*0.9 + dot_product;
-    if(V[id1] > 0.5){
-        V[id1] = 0;
+kernel void ffp(global float *V, global bool *S, global float *mult, int nl, int len, int it){
+    int id = get_global_id(0);
+    int V_pos = id*nl + it;
+    int idlen = id*len;
+    for(int i=0; i<len; i++){
+        V[V_pos] = V[V_pos] * 0.9 + mult[idlen+i];
+        if(V[V_pos] > 0.5){
+            S[idlen+i] = 1;
+            V[V_pos] = 0;
+        }else{
+            S[idlen+i] = 0;
+        }
     }
 }
 kernel void dotProd(global float *W, global uchar *S, global float *Mult, int npl, int len, int it){
@@ -20,7 +21,6 @@ kernel void dotProd(global float *W, global uchar *S, global float *Mult, int np
     for(int i=0; i<npl; i++){
         if(S[i*len + id2])
             Mult[mult_pos] += W[W_pos + i];
-        printf("Mult[%d]: S[%d] W[%d]\n", mult_pos, i*len+id2, W_pos+i);
     }
 }
 //kernal read

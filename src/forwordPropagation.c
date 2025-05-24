@@ -91,6 +91,12 @@ int createForwordProp_cl_createKeranals(forwordProp_cl* cl, cl_int* CL_err_ppr, 
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 16, err, cl)) return 1;
     CL_err = clSetKernelArg(cl->ffp, 2, sizeof(cl_mem), &cl->mult);
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 18, err, cl)) return 1;
+    CL_err = clSetKernelArg(cl->ffp, 3, sizeof(int), &cl->n_layers);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 18, err, cl)) return 1;
+    CL_err = clSetKernelArg(cl->ffp, 4, sizeof(int), &cl->len);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 18, err, cl)) return 1;
+    CL_err = clSetKernelArg(cl->ffp, 5, sizeof(int), &cl->iteration);
+    if(err_createForwordProp_cl(CL_err, CL_err_ppr, 18, err, cl)) return 1;
     // dotProd kernal
     cl->dotProd = clCreateKernel(cl->program, "dotProd", &CL_err);
     if(err_createForwordProp_cl(CL_err, CL_err_ppr, 19, err, cl)) return 1;
@@ -152,24 +158,26 @@ void releaseForwordProp_cl(forwordProp_cl* cl){
 }
 
 int runForwordProp_cl(forwordProp_cl* cl, cl_uchar* array, cl_float* out, cl_int* CL_err){
-    const size_t dim[] = {cl->neuronsPerLayer,cl->len,1};
+    const size_t dim_dotProd[] = {cl->neuronsPerLayer,cl->len,1};
+    const size_t dim_ffp[] = {cl->neuronsPerLayer,1,1};
     int Wsize = cl->n_layers*cl->neuronsPerLayer*cl->neuronsPerLayer;
     int Ssize = cl->neuronsPerLayer*LEN;
-    printf("\n\ntest %d\n", Ssize);
-    for(int i=0; i<Ssize; i++){
-        printf("S[%d]=%d ", i, array[i]);
-    }
-    printf("\n\n");
     //write
     *CL_err = clEnqueueWriteBuffer(cl->queue, cl->S, CL_TRUE, 0, sizeof(cl_uchar)*Ssize, array, 0, NULL, NULL);
     if(*CL_err != CL_SUCCESS)
         return 1;
     //execute
-    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->dotProd, 2, NULL, dim, NULL, 0, NULL, NULL);
+    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->dotProd, 2, NULL, dim_dotProd, NULL, 0, NULL, NULL);
+    if(*CL_err != CL_SUCCESS)
+        return 2;
+    *CL_err = clEnqueueNDRangeKernel(cl->queue, cl->ffp, 1, NULL, dim_ffp, NULL, 0, NULL, NULL);
     if(*CL_err != CL_SUCCESS)
         return 2;
     //read
-    *CL_err = clEnqueueReadBuffer(cl->queue, cl->mult, CL_TRUE, 0, sizeof(cl_float)*Ssize, out, 0, NULL, NULL);
+    *CL_err = clEnqueueReadBuffer(cl->queue, cl->mult, CL_FALSE, 0, sizeof(cl_float)*Ssize, out, 0, NULL, NULL);
+    if(*CL_err != CL_SUCCESS)
+        return 3;
+    *CL_err = clEnqueueReadBuffer(cl->queue, cl->S, CL_FALSE, 0, sizeof(cl_uchar)*Ssize, array, 0, NULL, NULL);
     if(*CL_err != CL_SUCCESS)
         return 3;
     clFinish(cl->queue);

@@ -13,15 +13,15 @@ int main()
     int nl = 1;
     int npl = 3;
     cl_float weight[] = {
-        0.0, 1.0, 2.0,
-        0.1, 1.1, 2.1,
-        0.2, 1.2, 2.2
+        0.00, 0.10, 0.20,
+        0.01, 0.11, 0.21,
+        0.02, 0.12, 0.22
     };
     printFloatList(weight, npl, npl);
     cl_uchar S[] = {
-        1, 0,
-        0, 1,
-        0, 1
+        1, 0, 1,
+        0, 1, 0,
+        0, 1, 1
     };
     printClUchar(S, npl, LEN);
     //cl_float mult[npl][LEN];
@@ -42,6 +42,7 @@ int main()
         return 1;
     }
     printFloatList(mult, npl, LEN);
+    printClUchar(S, npl, LEN);
     releaseForwordProp_cl(cl);
     return 0;
 }

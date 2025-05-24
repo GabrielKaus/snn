@@ -3,7 +3,7 @@
 
 #include <CL/cl.h>
 
-#define LEN 2
+#define LEN 3
 ///16
 
 typedef struct forwordProp_cl{

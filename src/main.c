@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "forwordPropagation.h"
+#include "weight.h"
 
 void printFloatList(float*,int,int);
 void printClUchar(cl_uchar*,int,int);
@@ -12,15 +13,8 @@ int main()
     forwordProp_cl* cl;
     int nl = 2;
     int npl = 3;
-    cl_float weight[] = {
-        0.000, 0.100, 0.200,
-        0.010, 0.110, 0.210,
-        0.020, 0.120, 0.220,
-        0.001, 0.101, 0.202,
-        0.011, 0.111, 0.211,
-        0.021, 0.121, 0.221
-    };
-    printFloatList(weight, npl, npl);
+    cl_float* weight = getWeight(nl, npl);
+    printWeight(weight, nl, npl);
     cl_uchar S[] = {
         1, 0, 1,
         0, 1, 0,

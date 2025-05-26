@@ -23,7 +23,7 @@ add_custom_command(
 )
 
 # basic add files, headers and librarys
-add_executable(${PROJECT_NAME} src/main.c src/forwordPropagation.c kernal/forwordPropagation_kernal.h)
+add_executable(${PROJECT_NAME} src/main.c src/forwordPropagation.c src/weight.c kernal/forwordPropagation_kernal.h)
 target_include_directories(${PROJECT_NAME} PRIVATE kernal header)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenCL::OpenCL)

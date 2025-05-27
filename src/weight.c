@@ -4,16 +4,22 @@
 
 cl_float* getWeight(int nl, int npl){
     int test;
-    char path[30];
+    char* path = getPath(nl,npl);
     int Wsize = nl*npl*npl;
     cl_float* weight = (cl_float*)malloc(sizeof(cl_float)*Wsize);
     if(weight == NULL) return NULL;
-    sprintf(path, "weight/w_%d_%d.bin", nl, npl);
     if(!readWeightFile(path, weight, Wsize))
         return weight;
     generateWeight(weight,Wsize);
     writeWeightFile(path, weight, Wsize);
+    free(path);
     return weight;
+}
+
+char* getPath(int nl, int npl){
+    char* path = (char*)calloc(sizeof(char), 30);
+    sprintf(path, "weight/w_%d_%d.bin", nl, npl);
+    return path;
 }
 
 void generateWeight(cl_float* weight, int size){
@@ -25,6 +31,7 @@ int readWeightFile(const char* path, cl_float* weight, int size){
     FILE* file = fopen(path, "rb");
     if(file == NULL) return 1;
     fread(weight, sizeof(cl_float), size, file);
+    fclose(file);
     return 0;
 }
 

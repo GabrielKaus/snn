@@ -12,26 +12,21 @@ int main()
     int err = 0;
     forwordProp_cl* cl;
     int nl = 2;
-    int npl = 3;
+    int npl = 4;
     cl_float* weight = getWeight(nl, npl);
     printWeight(weight, nl, npl);
-    cl_uchar S[] = {
-        1, 0, 1,
-        0, 1, 0,
-        0, 1, 1
-    };
-    printClUchar(S, npl, LEN);
+    cl_uchar data[] = {5, 10};
     cl = createForwordProp_cl(nl, npl, weight, &CL_err, &err);
     if(cl == NULL){
         print_createForwordProp_cl_error(CL_err, err);
         return 1;
     }
-    err = runForwordProp_cl(cl, S, &CL_err);
+    err = runForwordProp_cl(cl, data, &CL_err);
     if(err != 0){
         printf("opencl error: %d\nerror on run forwordProp: %d\n", CL_err, err);
         return 1;
     }
-    printClUchar(S, npl, LEN);
+    printClUchar(data,npl/2,1);
     releaseForwordProp_cl(cl);
     return 0;
 }

@@ -1,4 +1,4 @@
-kernel void ffp(global float *V, global bool *S, global float *mult, int nl, int len, int it){
+kernel void ffp(global float *V, global uchar *S, global float *mult, int nl, int len, int it){
     int id = get_global_id(0);
     int V_pos = id*nl + it;
     int idlen = id*len;
@@ -23,5 +23,29 @@ kernel void dotProd(global float *W, global uchar *S, global float *Mult, int np
             Mult[mult_pos] += W[W_pos + i];
     }
 }
-//kernal read
-//kernal write
+kernel void writeData(global uchar *data, global uchar *S){
+    int id = get_global_id(0);
+    uchar top = (data[id] & 0xF0) >> 4;
+    uchar botton = data[id] & 0x0F;
+    int t_pos = 2*id*15;
+    int b_pos = 2*id*15 + 15;
+    for(int i=0; i<15; i++){
+        S[t_pos + i] = i+1==top ? 1:0;
+        S[b_pos + i] = i+1==botton ? 1:0;
+    }
+}
+kernel void readData(global uchar *data, global uchar *S){
+    int id = get_global_id(0);
+    uchar top = 0;
+    uchar botton = 0;
+    int t_pos = 2*id*15;
+    int b_pos = 2*id*15 + 15;
+    for(int i=0; i<15; i++){
+        if(S[t_pos+i]==1)
+            top = i+1;
+        if(S[b_pos+i]==1)
+            botton = i+1;
+    }
+    data[id] = (top << 4) + botton;
+    printf("%d %d -> %d\n", top, botton, data[id]);
+}
